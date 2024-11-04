@@ -26,7 +26,7 @@
 
 - **Note**: Despite auto-scaling being attached, auto-healing is not there; we, as DevOps engineers, need to fix things manually.
 
-## Benefits of Using Kubernetes
+## Benefits of Using Kubernetes or Why Kubernetes
 
 - If we opt for Kubernetes:
   - It provides everything we need:
