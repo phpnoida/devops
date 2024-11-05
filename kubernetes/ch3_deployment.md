@@ -1,6 +1,8 @@
-# About Kubernetes Deployment
+# Why Deployment is Required?
 
-In Kubernetes, the **Deployment** component provides critical features like **auto-healing** and **auto-scaling**. These capabilities ensure that applications stay available and can adjust to varying loads.
+The **Deployment** component in Kubernetes is essential for running applications. It is responsible for managing and maintaining application pods, providing critical features like **auto-healing** and **auto-scaling**. These capabilities ensure that applications experience zero downtime and can automatically adjust to varying loads.
+
+Note:For each microservice there will be respective deployment.yml file i.e if there are 50 microservices in our project then there will be 50 deployment.yml file i.e emaildeployment.yml , orderdeployment.yml etc
 
 ---
 

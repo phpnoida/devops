@@ -14,14 +14,17 @@ Before diving into Kubernetes architecture, let’s first understand what a cont
 
 Kubernetes operates on two types of nodes/machines:
 
-1. **Control Plane**
-2. **Worker Node** (also called **Data Plane** or simply **Node**)
+1. **Control Plane(set of master node)**
+2. **Data Plane(set of worker node)**
 
 - **Control Plane**: Used by Kubernetes administrators for managing the cluster; it controls the worker nodes.
-- **Worker Nodes**: These are the nodes where our application runs.
+- **Data Planes**: Set of worker node is called data planes.Worker node are the one where our application runs , which does the main work that's why its called as worker node.
 
 - The control plane is the entry point for Kubernetes administrators.
 - Worker nodes (where **ALB** will be deployed) serve as the entry point for end users.
+
+what is K8s Cluster ?
+cluster is comprised of control plane means collection of master nodes and data planes means collection of worker node.
 
 ---
 
@@ -61,10 +64,12 @@ Each control plane node must have five main processes installed, in the followin
 2. **Scheduler**
 
    - Decides on which worker node a pod should be scheduled.
+   - this decision is based on how much cpu and memmory we have requested for and in which nodes it is available
 
 3. **Controller Manager**
 
    - Manages various controllers in Kubernetes, like ReplicaSets, ensuring they work properly.
+   - it mainly see our yml file and look for any chnages we did in these yml file 
 
 4. **Cloud Controller Manager**
 
