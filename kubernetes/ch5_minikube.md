@@ -2,10 +2,10 @@
 
 ## Local Machine vs Cloud Setup
 
-| Local Machine       | Cloud    |
-|---------------------|----------|
-| Minikube            | AWS EKS  |
-| Kind (K8s in Docker)|          |
+| Local Machine        | Cloud   |
+| -------------------- | ------- |
+| Minikube             | AWS EKS |
+| Kind (K8s in Docker) |         |
 
 ## Installation Steps
 
@@ -24,7 +24,7 @@
 **Step 6**: Check the status of the cluster you created by running the command:
 `minikube status -p dsobs-local-cluster`
 
-## Useful `kubectl` Commands
+## Useful `kubectl` Commands related to minikube
 
 - **List all clusters:**
   `kubectl config get-contexts`
@@ -45,4 +45,3 @@
   `minikube dashboard --url -p dsobs-local-cluster`
 
 ---
-

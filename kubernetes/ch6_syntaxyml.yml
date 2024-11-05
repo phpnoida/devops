@@ -1,0 +1,46 @@
+# This is my local cluster information
+# This is on minikube
+- name: local-cluster
+  isActive: true
+  # dates
+  createdAt: 2021-09-25 21:11:15 
+  # variable declare
+  version: &clusterVersion 1.22.1
+  # objects
+  access:
+    ip: 192.168.58.2
+    port: 8443
+  # array of objects , either with indentation or parallel to parent
+  nodes:
+  - name: local-vluster-01
+    type: master
+    tags: [ "local", "master" ]
+  - name: local-cluster-02
+    type: worker
+    tags: [ "local", "worker" ]
+  # consider long text as single line
+  description: >
+    This is the local cluser created on minikube. And the driver I uswed is
+    Docker!
+  # consider it as multiple lines
+  longDescription: |
+    This is the local cluser created on minikube.
+    And the driver I uswed is Docker!
+- name: dev-cluster
+  isActive: true
+  createdAt: 2021-09-24 21:11:15
+  # variable use
+  version: *clusterVersion
+  access:
+    ip: 192.168.58.3
+    port: 8443
+  nodes:
+  - name: dev-vluster-01
+    type: master
+    tags: [ "dev", "master" ]
+  - name: dev-cluster-02
+    type: worker
+    tags: [ "dev", "worker" ]
+
+# starting new document with 3 dash
+---
