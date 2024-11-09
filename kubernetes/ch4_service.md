@@ -1,16 +1,22 @@
-why service is required ?
+# Why is a Service Required?
 
-we can't access our application by accessing pods ,our application which is running inside pods is accessible through service only.
+## Gist:
+1. **Pods can’t be accessed directly, so our application can’t be accessed directly either.**
+   
+2. **Pods need to communicate with each other within the cluster**, but this communication can’t rely on IP addresses assigned to pods since pods are ephemeral (they come and go). Therefore, we need a **static IP address that doesn’t change** — and this is provided by the **Service**.
 
-Kubeproxy is worker node is the one which forward the request from service to pod.
+   **Example:**  
+   Suppose we have 100 microservices, each running on multiple pods across various worker nodes. Each microservice’s pods need to communicate with others, but this can’t happen based on pod IP addresses alone. Here, Services play a crucial role.
 
-We can specify 10 or 100 pods in deployment.yml file right ?so service is that component of k8 which acts as LoadBalancer for these 10 or 100 pods which has been created by deployemnt hence we can say autohealing and autoscaling we get from deployment and load balancer from service.
+3. **Service** is a component of the cluster that allows access to pods/applications, whether within the cluster network or from outside it.
 
-Note:
-1.For each microservice there will be respective service.yml file i.e if there are 50 microservices in our project then there will be 50 service.yml file i.e emailservice.yml , orderservice.yml etc
-2.more refined way is that we mainly create service in deployment.yml file itself becuase deployment and service are closely related to each other.
+4. **Service acts as a LoadBalancer for pods.**
 
-Types of Service:
-1.ClusterIP(default)
-2.NodePort
-3.LoadBalancer
+5. Services identify their associated pods using **labels and selectors**.
+
+6. **There are 3 types of Services:**
+   - **ClusterIP:** Accessible only within the cluster. This allows pods to communicate with each other using the Service. This is the default and most commonly used type.
+   - **NodePort:** Allows access to the Service outside the cluster via the worker node’s IP address and a specific NodePort (in the range 30000–32767). This type is generally not recommended for production, as the node could be terminated or restarted with a new IP address.
+   - **LoadBalancer:** Provides a public IP address, making the Service accessible externally. However, instead of using this directly, **Ingress** is commonly used for external access.
+
+   > **Note:** `kube-proxy` running on each worker node is responsible for forwarding requests from the Service to the appropriate pod.

@@ -16,32 +16,15 @@
 **Step 3**: Install Minikube based on your OS.
 
 **Step 4**: Verify Minikube installation by running the following command:
-`minikube version`
+- `minikube version`
 
-**Step 5**: Create the cluster by running the command:
-`minikube start --nodes 2 -p dsobs-local-cluster --driver=docker`
+## Useful `minikube` Commands
 
-**Step 6**: Check the status of the cluster you created by running the command:
-`minikube status -p dsobs-local-cluster`
+- `minikube start`
+- `minikube stop`
+- `minikube status`
+- `minikube ip` (or EC2 IP on cloud)
 
-## Useful `kubectl` Commands related to minikube
-
-- **List all clusters:**
-  `kubectl config get-contexts`
-
-- **Switch between clusters:**
-  `kubectl config set-context dsobs-local-cluster`
-
-- **Add a node to a particular cluster:**
-  `minikube node add --worker -p dsobs-local-cluster`
-
-- **Delete a node from a particular cluster:**
-  `minikube node delete node_name -p dsobs-local-cluster`
-
-- **Get all nodes:**
-  `kubectl get nodes`
-
-- **Access the Minikube dashboard:**
-  `minikube dashboard --url -p dsobs-local-cluster`
-
----
+### To Access the Dashboard in Detached Mode
+```bash
+minikube dashboard --url &
