@@ -1,0 +1,107 @@
+# ================================
+# MongoDB Headless Service Section
+# ================================
+
+# The following service is a headless service, which provides stable DNS for MongoDB pods.
+# Headless services are required for StatefulSets to enable stable DNS names, allowing each
+# pod to be addressed individually and participate in the MongoDB replica set.
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongo-headless-svc # Required: This is the unique name of the service used in StatefulSet's serviceName field
+  labels:
+    app: mongo # Label to identify resources associated with the MongoDB application
+spec:
+  clusterIP: None # Required: Setting clusterIP to None makes this a headless service
+  selector:
+    app: mongo # Required: Matches this service to pods with this label, allowing DNS routing
+  ports:
+  - port: 27017 # Optional: This is the default MongoDB port (can be changed if needed)
+    targetPort: 27017 # Optional: Target port inside the MongoDB container
+---
+# ================================
+# MongoDB StatefulSet Section
+# ================================
+
+# The StatefulSet ensures each MongoDB instance (pod) has a unique identity.
+# Key points:
+# - Replicas set to 3 to create three MongoDB instances for replica set setup.
+# - Each MongoDB pod has a stable DNS name with the help of the headless service.
+# - Persistent volume claims ensure each pod has its own storage, retained even if pods are restarted.
+
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mongo-statefulset
+spec:
+  serviceName: mongo-headless-svc # Required: Associates StatefulSet with the headless service for stable DNS
+  replicas: 3 # Sets the number of replicas; matches replica set members
+  selector:
+    matchLabels:
+      app: mongo # Required: Matches pods created by the StatefulSet with the service selector above
+  template:
+    metadata:
+      labels:
+        app: mongo # Required: Labels the pods to match the Service selector and StatefulSet selector
+    spec:
+      containers:
+      - name: mongo
+        image: mongo:6.0 # Specifies the MongoDB version to use; ensure compatibility with config options
+        command: [ "mongod", "--replSet", "rs0", "--bind_ip_all" ]
+        # "mongod" launches MongoDB.
+        # "--replSet" designates the replica set name (important for replica set configuration).
+        # "--bind_ip_all" allows MongoDB to listen on all network interfaces for easier inter-pod communication.
+        # "--auth" enables authentication, requiring login credentials to connect to MongoDB.
+
+        env:
+        - name: MONGO_INITDB_ROOT_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: mongo-secret
+              key: MONGO_INITDB_ROOT_USERNAME
+        - name: MONGO_INITDB_ROOT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mongo-secret
+              key: MONGO_INITDB_ROOT_PASSWORD
+        - name: MONGO_INITDB_DATABASE
+          valueFrom:
+            configMapKeyRef:
+              name: mongo-cm
+              key: MONGO_INITDB_DATABASE
+
+        ports:
+        - containerPort: 27017 # Default MongoDB port; ensure it aligns with service targetPort and headless service port
+        volumeMounts:
+        - name: mongo-persistent-storage # Links to PersistentVolumeClaim defined below
+          mountPath: /data/db # MongoDB default data directory (do not change unless necessary)
+
+  volumeClaimTemplates:
+  - metadata:
+      name: mongo-persistent-storage # PersistentVolumeClaim name for each pod’s storage
+    spec:
+      accessModes:
+      - ReadWriteOnce # Each pod has read-write access to its own volume only
+      resources:
+        requests:
+          storage: 1Gi # Storage request; can be adjusted based on data storage needs
+      storageClassName: minikube-storage # Specifies the storage class; ensure correct StorageClass exists
+---
+# ================================
+# Storage Class Section
+# ================================
+
+# This storage class is used by PersistentVolumeClaims in the StatefulSet to dynamically provision volumes.
+# Key points:
+# - minikube-storage as storageClassName is suitable for Minikube (in production, consult your Kubernetes storage provider).
+# - provisioner: Specifies the driver for managing storage on your platform.
+# - reclaimPolicy: Determines what happens to the volume after PVC deletion (Delete removes it).
+
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: minikube-storage # StorageClass name; should match StatefulSet’s volumeClaimTemplates storageClassName
+provisioner: k8s.io/minikube-hostpath # For Minikube local setup; adjust for production
+reclaimPolicy: Delete # Automatically deletes volumes when PVCs are deleted; use Retain for data persistence
+volumeBindingMode: Immediate # Binds volumes immediately as pods are created; consider WaitForFirstConsumer for delayed binding
