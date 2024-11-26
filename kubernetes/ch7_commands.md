@@ -20,17 +20,18 @@ To edit a configuration file, then apply the changes:
 
 ## Get Resources
 To retrieve various resources in the cluster:
-- `kubectl get all`
-- `kubectl get all -o wide`
+- `kubectl get all -n dsobs-dev`
+- `kubectl get all -o wide -n dosbs-prod`
 - `kubectl get all -o yaml`
 - `kubectl get pods` or `kubectl get po`
-- `kubectl get deployment`
-- `kubectl get statefulset`
-- `kuebctl get pvc`
-- `kubectl get service` or `kubectl get svc`
-- `kubectl get ing`
-- `kubectl get cm` (ConfigMaps)
-- `kubectl get secrets`
+- `kubectl get deployment -n dsobs-dev`
+- `kubectl get statefulset -n dsobs-dev`
+- `kuebctl get pvc -n dsobs-dev`
+- `kubectl get pv` (pv belongs to whole cluster)
+- `kubectl get service -n dsobs-dev` or `kubectl get svc -n dsobs-dev`
+- `kubectl get ing -n dsobs-dev`
+- `kubectl get cm -n dsobs-dev` (ConfigMaps)
+- `kubectl get secrets -n dsobs-dev`
 
 ## Debugging
 To troubleshoot and find reasons why resources haven’t started:

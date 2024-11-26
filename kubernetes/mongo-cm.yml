@@ -2,6 +2,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: mongo-cm
+  namespace: my-namespace # Specify namespace here
 data:
   DB_PORT: "27017"
   DB_PASS: "bunny123"
