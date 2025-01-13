@@ -1,0 +1,15 @@
+version: "3.9"
+services:
+  redis:
+    image: redis:6.0.17
+    restart: always
+    ports:
+      - "6379:6379"
+  api:
+    image: "incredgolf/wobs-api:${IMAGE}"
+    ports:
+      - "9000:9000"
+    environment:
+      - NODE_ENV=production
+      - MONGO_URL=mongodb://mongo-primary:27017,my-mongo-secondary1:27017,my-mongo-secondary2:27017/mydb?replicaSet=myReplicaSet
+      - REDIS_URL=redis://redis:6379

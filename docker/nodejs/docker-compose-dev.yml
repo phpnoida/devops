@@ -1,0 +1,36 @@
+version: "3.7"
+services:
+  mongo:
+    image: mongo:6.0.17
+    restart: always
+    ports:
+      - "27018:27017"
+    volumes:
+      - mongoDB:/data/db
+  redis:
+    image: redis:6.0.17
+    restart: always
+    ports:
+      - "6378:6379"
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    ports:
+      - "3007:3007"
+    environment:
+      - PORT=3007
+      - NODE_ENV=development
+      - MONGO_URI=mongodb://mongo:27017/mydb
+      - REDIS_URI=redis://redis:6379
+    # will be remove in production
+    volumes:
+      - .:/app
+
+    depends_on:
+      - mongoDB
+      - redis
+# will be remove in production
+volumes:
+  mongoDB:
