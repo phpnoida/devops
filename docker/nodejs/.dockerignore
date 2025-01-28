@@ -1,0 +1,39 @@
+# Node.js specific
+node_modules
+npm-debug.log
+yarn-error.log
+*.env
+.DS_Store
+
+# Logs
+logs
+*.log
+
+# Dependency lockfiles (if not used)
+# Uncomment if you're not using lockfiles during the build process
+# package-lock.json
+# yarn.lock
+
+# Editor and IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS-specific files
+Thumbs.db
+.DS_Store
+
+# Git-related files
+.git/
+.gitignore
+
+# Build outputs (if applicable)
+dist/
+build/
+coverage/
+
+# Docker-related
+.dockerignore
+Dockerfile
+Dockerfile.*

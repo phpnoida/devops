@@ -1,0 +1,48 @@
+# Ignore node_modules and npm/yarn logs
+node_modules
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Ignore build outputs
+build
+dist
+
+# Ignore local environment files
+.env
+.env.local
+.env.development
+.env.production
+.env.test
+
+# Ignore editor and IDE configuration files
+.idea
+.vscode
+*.swp
+
+# Ignore OS-specific files
+.DS_Store
+Thumbs.db
+
+# Ignore temporary files and logs
+*.log
+*.tmp
+
+# Ignore test files
+coverage
+*.test.js
+*.spec.js
+*.test.jsx
+*.spec.jsx
+__tests__
+__mocks__
+
+# Ignore Docker-related files (optional)
+.dockerignore
+Dockerfile
+Dockerfile.*
+
+# Ignore miscellaneous files
+*.lock
+*.cache
+*.bak

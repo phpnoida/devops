@@ -94,16 +94,21 @@ docker run hello-world
 
 ## Important Commands:
 ```bash
+docker pull redis
 docker ps
 docker ps -a
 docker start <containerId>
 docker stop <containerId>
 docker run <imageName>
+docker images
 docker rmi <imageId>
 docker rm <containerId>
 docker logs <containerId>
 docker exec -it <containerId/containerName> /bin/sh
 docker inspect <containerId/containerName>
+docker volume ls
+docker volume inspect jenkins_data
+
 ```
 
 ---
@@ -129,3 +134,12 @@ docker init
   - `Dockerfile`
   - `docker-compose.yml`
   - `.dockerignore` file
+
+
+## Docker Network:
+3 Types:
+Bridge
+Host
+Overlay
+
+By default Bridge type is created which allows container to talk to host.

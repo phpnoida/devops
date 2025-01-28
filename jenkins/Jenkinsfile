@@ -1,0 +1,90 @@
+@Library('jenkins-shared-library')
+def gv
+
+pipeline{
+    //agent any
+     agent {
+        // using docker agent to run the pipeline in a container
+        // we need to build a custom image with docker & node installed
+        docker {
+           image 'your-registry/node-docker:latest'
+           args '-v /var/run/docker.sock:/var/run/docker.sock'
+        }
+    }
+    tools {
+        nodejs 'NodeJS'
+    }
+
+    stages{
+
+        stage('import script'){
+            steps{
+                script{
+                    gv = load "script.groovy"
+                }
+            }
+        }
+
+      stage('testAPI'){
+        when {
+            expression {
+                BRANCH_NAME == 'master' || BRANCH_NAME == 'develop'
+            }
+        }
+            steps{
+                script{
+                    //gv.testAPI()
+                    runUnitTests() // shared library function
+                }
+            }
+
+      }
+    
+
+        stage('configureGit'){
+            steps{
+                script{
+                    gv.configureGit()
+                }
+            }
+        }
+
+        stage('buildTag'){
+            steps{
+                script{
+                    gv.buildTag()
+                }
+            }
+        }
+
+        stage('pushImage'){
+            steps{
+                script{
+                    gv.pushImage()
+                }
+            }
+        }
+
+        stage('deployAPI'){
+            steps{
+                script{
+                    gv.deployAPI()
+                }
+            }
+        }
+
+    }
+
+    post{
+        success{
+            echo 'Build Success'
+        }
+        failure{
+            echo 'Build Failure'
+        }
+
+        always{
+            echo 'Build Completed'
+        }
+    }
+}
