@@ -75,37 +75,69 @@ git add <file>
 git merge --continue                                                 # completes the merge commit
 ```
 
-### Step 5A — Squash messy WIP commits before raising PR (interactive rebase)
+### Step 5A — Squashing commits: GitHub UI (company standard) vs local rebase
 
 > During development you often make commits like "wip", "fix typo", "trying again".
-> Before opening a PR, squash these into one clean, meaningful commit.
+> The end goal is one clean commit per feature in the main history.
+> There are two ways to achieve this — know both, but use the right one for your company.
+
+---
+
+#### Method 1 — Squash via GitHub UI on PR merge *(most common in companies)*
+
+This is what most companies do. The developer does **nothing special** locally.
+Just push your commits as-is and raise the PR. When the PR is approved, the person
+merging selects **"Squash and merge"** on GitHub instead of the plain "Merge" button.
+
+```
+Developer's branch has:
+  a3f1c2e wip
+  b91d04a fix typo
+  c72aa10 trying again
+  d88e001 EVNT-123: Add validation for event form
+
+After "Squash and merge" on GitHub UI, dev branch gets:
+  f9a3b21 EVNT-123: Add validation for event form   ← one clean commit, all changes combined
+```
+
+GitHub lets the merger edit the final combined commit message before confirming.
+
+**Why companies prefer this:**
+- No local force push required
+- Developer doesn't need to know `git rebase -i`
+- Consistent — enforced at repo level (admins can disable plain merge so everyone squashes)
+- Audit trail: the PR still shows all original commits for review history
+
+> **How to check if your repo enforces this:**
+> GitHub → repo → Settings → Pull Requests → look for "Allow squash merging" being the only enabled option.
+
+---
+
+#### Method 2 — Local interactive rebase before PR *(less common, useful to know)*
+
+Used when the team wants the branch itself to be clean before review,
+or when you need to reorganise/reword commits (not just squash).
 
 ```bash
 git log --oneline                                          # see your commits on this branch
-# example output:
 # a3f1c2e wip
 # b91d04a fix typo
 # c72aa10 trying again
-# d88e001 EVNT-123: Add validation for event form  ← the real one
+# d88e001 EVNT-123: Add validation for event form
 
-git rebase -i HEAD~4                                       # interactively rebase last 4 commits
-# This opens an editor with:
-# pick d88e001 EVNT-123: Add validation for event form
-# pick c72aa10 trying again
-# pick b91d04a fix typo
-# pick a3f1c2e wip
+git rebase -i HEAD~4                                       # interactively edit last 4 commits
+# Editor opens — change "pick" to "s" (squash) on all except the first:
 #
-# Change "pick" to "squash" (or just "s") for commits you want to merge up:
 # pick d88e001 EVNT-123: Add validation for event form
 # s    c72aa10 trying again
 # s    b91d04a fix typo
 # s    a3f1c2e wip
 #
-# Save and close. Git opens another editor to write the final combined commit message.
-# Write a clean message: "EVNT-123: Add validation for event form"
+# Save → another editor opens for the final commit message
+# Write: "EVNT-123: Add validation for event form" → save
 
-git push -f origin feature/EVNT-123-add-event-module       # force push needed after rebase
-# Note: only force push on YOUR OWN feature branch, never on shared/protected branches
+git push -f origin feature/EVNT-123-add-event-module       # force push needed — history was rewritten
+# ONLY safe on your own feature branch. Never force push shared/protected branches.
 ```
 
 ### Step 6 — Push updated feature & raise PR → `dev`
@@ -139,14 +171,49 @@ git push -u origin bugfix/EVNT-221-login-issue
 ### Step 9 — Release: `staging` → `main` (protected, PR-only) + tag
 
 ```bash
-# In Git UI: create PR base=main, compare=staging          # release PR
-# Ensure required approvals + production CI checks pass
-
-# (optional but recommended) tag the release locally after merge
-git fetch --tags
-git tag -a v2.1.0 -m "Release 2.1.0 - Event module"
-git push origin v2.1.0
+# 1. In GitHub UI: create PR base=main, compare=staging
+#    Ensure required approvals + all production CI checks pass
+#    Get sign-off from Release Manager / Tech Lead
+#    Merge the PR (plain merge commit, not squash — you want the full staging history on main)
 ```
+
+**After the PR is merged — tagging the release (done locally)**
+
+> You must pull latest `main` first before tagging.
+> If you tag without pulling, your local `main` is stale and the tag points to the wrong commit
+> (the one before the merge). The tag must point to the exact merge commit that is now on `main`.
+
+```bash
+# 2. Switch to main and pull the just-merged commit
+git switch main
+git pull origin main                               # now your local main = what GitHub just merged
+
+# 3. Verify you're on the right commit
+git log --oneline -3
+# expected output:
+# f3a91bc Merge pull request #47 from staging      ← this is the release merge commit
+# a72de10 EVNT-410: Fix edge case in checkout
+# b33cc01 EVNT-405: Add promo code support
+
+# 4. Create annotated tag on this HEAD
+git tag -a v2.1.0 -m "Release v2.1.0 - Event module and checkout improvements"
+#         ^^^^^^^   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+#         tag name  message shown in GitHub Releases and git log
+
+# 5. Verify the tag was created correctly
+git show v2.1.0
+# shows: tag name, tagger, date, message, and the commit it points to
+
+# 6. Push the tag to remote
+git push origin v2.1.0
+
+# The tag is now visible on GitHub under Releases / Tags
+```
+
+> **Why annotated tag (`-a`) and not lightweight tag?**
+> Annotated tags store author, date, and message — they show up properly in GitHub Releases
+> and `git describe`. Lightweight tags are just a pointer with no metadata, used for temp markers.
+> Always use `-a` for release tags in a company.
 
 ### Step 9A — Hotfix flow (production emergency — branch directly from `main`)
 
@@ -291,6 +358,7 @@ git revert a3f9c12
 ### Step 12 — Cleanup
 
 ```bash
+git push origin -d <branchName> #delete remote branch
 git branch -d feature/EVNT-123-add-event-module            # delete merged local branch
 git fetch -p                                               # prune deleted remote branches locally
 ```
