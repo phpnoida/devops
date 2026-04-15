@@ -195,7 +195,32 @@ git log --oneline -3
 # a72de10 EVNT-410: Fix edge case in checkout
 # b33cc01 EVNT-405: Add promo code support
 
-# 4. Create annotated tag on this HEAD
+# 4. Check the previous tag so you know what to increment
+git tag --sort=-version:refname | head -5
+# output (latest first):
+# v2.0.3
+# v2.0.2
+# v2.0.1
+# v2.0.0
+# v1.9.0
+
+# or: get just the single most recent tag
+git describe --tags --abbrev=0
+# output: v2.0.3
+
+# 5. Decide the new tag based on semantic versioning:
+#
+#    Format: v<MAJOR>.<MINOR>.<PATCH>
+#
+#    PATCH +1  →  only bug fixes merged         v2.0.3 → v2.0.4
+#    MINOR +1  →  new features added            v2.0.3 → v2.1.0  (PATCH resets to 0)
+#    MAJOR +1  →  breaking change (API changed, v2.0.3 → v3.0.0  (MINOR+PATCH reset to 0)
+#                 DB schema changed, etc.)
+#
+#    In this example: new features were added → bump MINOR
+#    Previous: v2.0.3  →  New tag: v2.1.0
+
+# 6. Create annotated tag on this HEAD
 git tag -a v2.1.0 -m "Release v2.1.0 - Event module and checkout improvements"
 #         ^^^^^^^   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #         tag name  message shown in GitHub Releases and git log
