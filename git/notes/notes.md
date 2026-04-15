@@ -285,15 +285,48 @@ git push origin dev
 
 ### Step 10 — Back-merge after release (keep branches in sync)
 
+> **Do this immediately after every release. Do not wait for the next sprint.**
+> After `staging → main` merges, `main` and `staging` are identical.
+> But `dev` may have new commits added during the sprint that were not part of this release.
+> Both back-merges below are mandatory — skipping either causes branches to drift apart
+> and future releases risk losing hotfixes or carrying stale code into QA.
+
 ```bash
-# sync main → dev so dev contains the released code
+# --- Back-merge 1: main → dev (MANDATORY) ---
+# Reason: any hotfix that went directly to main must come back to dev,
+#         otherwise the next release will overwrite it and the fix is lost in production.
+
 git switch dev && git pull origin dev
-git merge origin/main                                       # bring prod changes to dev
+git merge origin/main                                      # bring released + hotfix commits to dev
+# if conflict: resolve → git add <file> → git commit
 git push origin dev
 
-# (optional) also ensure staging matches dev for next cycle via PR if policy requires
-# Typically: PR base=staging, compare=dev (or merge dev → staging before next QA cycle)
+git log --oneline dev..main                                # verify: should be empty (dev is ahead or equal)
+
+# --- Back-merge 2: dev → staging (MANDATORY before next QA cycle) ---
+# Reason: staging must have the new sprint's dev commits before QA starts testing.
+#         Best practice is to do this right after the release, not at the start of next sprint,
+#         so all three branches (main, dev, staging) are in sync and the team starts fresh.
+
+# Via PR (recommended if staging is a protected branch):
+# Open PR in GitHub UI: base=staging, compare=dev
+# Get approval → merge
+
+# Via direct merge (if your policy allows it):
+git switch staging && git pull origin staging
+git merge origin/dev
+git push origin staging
+
+# Final verification — all three should point to the same or expected commits:
+git log --oneline -1 main
+git log --oneline -1 staging
+git log --oneline -1 dev
 ```
+
+> **State after both merges:**
+> `main` = released code
+> `staging` = released code + new sprint dev commits (ready for next QA round)
+> `dev` = same as staging (hotfixes from main are now in dev too)
 
 ### Step 11 — Revert / emergency commands (when something goes wrong)
 
