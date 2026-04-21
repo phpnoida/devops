@@ -140,12 +140,30 @@ git push -f origin feature/EVNT-123-add-event-module       # force push needed �
 # ONLY safe on your own feature branch. Never force push shared/protected branches.
 ```
 
-### Step 6 — Push updated feature & raise PR → `dev`
+### Step 6 — Sync dev into your feature branch FIRST, then push and raise PR
+
+> **Never raise a PR on a branch that is behind `dev`.**
+> Always merge latest `dev` into your feature branch before pushing for review.
+> This ensures your branch has everyone else's latest work and any conflicts are
+> resolved by you (the author) — not left for the reviewer or CI to discover.
 
 ```bash
-git push origin feature/EVNT-123-add-event-module          # push after rebase/merge
-# Open PR in Git UI: base=dev, compare=feature/EVNT-123-...
-# Ensure: CI green, approvals obtained, branch up-to-date
+# 1. Sync your feature branch with latest dev (do this before EVERY PR)
+git switch dev && git pull origin dev                      # get latest dev
+git switch feature/EVNT-123-add-event-module               # back to your branch
+git merge dev                                              # merge dev into your feature branch
+# if conflicts: resolve → git add <file> → git commit
+
+# 2. Push the updated branch
+git push origin feature/EVNT-123-add-event-module
+
+# 3. Open PR in GitHub UI
+# base=dev, compare=feature/EVNT-123-add-event-module
+# Checklist before submitting:
+#   ✓ dev is merged into your branch (just done above)
+#   ✓ CI is green
+#   ✓ no unresolved conflicts
+#   ✓ PR description explains what and why
 ```
 
 ### Step 7 — Promote `dev` → `staging` for QA (via PR)
@@ -413,13 +431,35 @@ git revert a3f9c12
 > git bisect run ./run-tests.sh                            # runs script on each step; 0=good, non-zero=bad
 > ```
 
-### Step 12 — Cleanup
+### Step 12 — Cleanup (delete local branch, then remote branch)
+
+> **Rule: you cannot delete the branch you are currently on.**
+> Git will throw an error: `error: Cannot delete branch 'feature/...' checked out`.
+> Always switch to another branch first (usually `dev`), then delete.
 
 ```bash
-git push origin -d <branchName> #delete remote branch
-git branch -d feature/EVNT-123-add-event-module            # delete merged local branch
-git fetch -p                                               # prune deleted remote branches locally
+# 1. Switch away from the feature branch first
+git switch dev                                             # move to dev (or main — any other branch)
+
+# 2. Delete the LOCAL branch
+git branch -d feature/EVNT-123-add-event-module            # -d = safe delete (only if fully merged)
+# if git refuses because it thinks it's not merged, and you're sure it is:
+# git branch -D feature/EVNT-123-add-event-module          # -D = force delete
+
+# 3. Delete the REMOTE branch on GitHub
+git push origin --delete feature/EVNT-123-add-event-module
+# or shorthand:
+# git push origin -d feature/EVNT-123-add-event-module
+
+# 4. Prune stale remote-tracking references from your local git
+git fetch -p                                               # removes origin/<branch> entries that no longer exist
+
+# 5. Verify it's gone
+git branch -a                                              # should not see the branch anywhere
 ```
+
+> **Note**: GitHub also offers "Delete branch" button on the merged PR page.
+> That only deletes the remote branch. You still need step 2 to delete your local copy.
 
 ---
 
