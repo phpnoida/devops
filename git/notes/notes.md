@@ -346,22 +346,70 @@ git log --oneline -1 dev
 > `staging` = released code + new sprint dev commits (ready for next QA round)
 > `dev` = same as staging (hotfixes from main are now in dev too)
 
-### Step 11 — Revert / emergency commands (when something goes wrong)
+### Step 11 — Revert a bad commit (safe undo on a protected branch)
 
+> `git revert` is always safe on shared/protected branches — it creates a NEW commit
+> that undoes the changes. It does NOT rewrite history, so no one else is affected.
+> Never use `git reset --hard` on a shared branch — it rewrites history and breaks
+> everyone who has already pulled that commit.
+
+**Step 1: Find the bad commit**
 ```bash
-git log --oneline --graph --decorate --all                 # inspect history
+git switch main && git pull origin main
+git log --oneline -5
+# f3a91bc Merge pull request #47 from feature/EVNT-301-login-styling   ← bad one
+# b71d004 EVNT-298: Add footer links
+# c92ee11 Release v2.1.0
+```
 
-git revert <commit-id>                                     # safe undo: creates a new commit that reverts
-# push and raise PR for protected branches
+**Step 2: Check if it is a merge commit or a regular commit**
+```bash
+git cat-file -p f3a91bc | grep parent
+# parent b71d004          ← ONE parent  = regular (squash merged) commit
+# parent b71d004
+# parent c92ee11          ← TWO parents = merge commit (standard merge)
+```
 
-# use with caution on shared branches (avoid on protected):
-# git reset --hard <commit-id>
+**Step 3: Create the revert branch FIRST (never revert directly on main)**
+```bash
+git switch -c revert/EVNT-301-undo-login-styling           # create branch off main
+```
 
-# temporarily shelve work
+**Step 4: Revert — choose the right command based on commit type**
+```bash
+# If it is a REGULAR commit (one parent — squash merged PR):
+git revert f3a91bc                                         # no extra flag needed
+# editor opens with default message → save it
+
+# If it is a MERGE COMMIT (two parents — standard merge PR):
+git revert -m 1 f3a91bc                                    # -m 1 means "keep parent 1 (main), undo parent 2 (feature)"
+# editor opens with default message → save it
+
+# What -m 1 means:
+# A merge commit has two parents: parent 1 = main before merge, parent 2 = the feature branch
+# -m 1 tells git: treat parent 1 (main) as the mainline → revert everything the feature branch added
+```
+
+**Step 5: Push the branch and raise PR**
+```bash
+git push -u origin revert/EVNT-301-undo-login-styling
+
+# Open PR in GitHub UI:
+# base=main, compare=revert/EVNT-301-undo-login-styling
+# Get approval → merge
+
+# After merge, verify the bad changes are gone:
+git switch main && git pull origin main
+git log --oneline -5
+```
+
+**Other emergency commands**
+```bash
+# Temporarily shelve uncommitted work
 git stash                                                   # save uncommitted changes
 git stash pop                                               # reapply latest stash
 
-# if .gitignore changed late and files are already tracked
+# If .gitignore was added late and files are already tracked
 git rm -r --cached . && git add . && git commit -m "chore: apply .gitignore"
 ```
 
