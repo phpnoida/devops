@@ -14,6 +14,276 @@ git config --global --list                                 # verify settings
 # Tip: use SSH keys or Git Credential Manager; avoid storing raw tokens.
 ```
 
+### Step 0A — Store Credentials Securely (one-time setup)
+
+> **Rule**: never type your password or paste a raw token into the terminal on every push.
+> Store credentials once in the OS keychain — Git reads from there silently from that point on.
+>
+> Way 1 and Way 2 are both HTTPS-based. Way 2 is just the automated version of Way 1.
+> **If your company uses HTTPS → go with Way 2. If SSH → go with Way 3.**
+
+---
+
+#### Way 1 — OS Keychain manually *(HTTPS — understand what is happening under the hood)*
+
+> The OS keychain is a secure encrypted vault built into your OS.
+> Git's credential helper is a plugin that saves your token there once,
+> then reads it silently on every future push/pull. You never type credentials again.
+
+**Before you start: generate a PAT on GitHub (needed for both macOS and Linux)**
+
+```
+1. Open browser → go to github.com → log in
+2. Top-right corner → click your profile photo → Settings
+3. Left sidebar → scroll to the bottom → Developer settings
+4. Left sidebar → Personal access tokens → Tokens (classic)
+5. Click "Generate new token" → "Generate new token (classic)"
+6. Fill in:
+     Note:       my-laptop-git                (any label you want)
+     Expiration: 90 days  (or No expiration for personal use)
+     Scopes:     ✓ repo   (check the top-level repo checkbox — selects all sub-items)
+                 ✓ workflow
+7. Scroll to bottom → click "Generate token"
+8. COPY the token immediately — it starts with ghp_
+   Example: ghp_ABcDeFgHiJkLmNoPqRsTuVwXyZ123456
+   GitHub will NEVER show it again. Save it in a notepad temporarily.
+```
+
+---
+
+**macOS — configure keychain helper and trigger first-time save**
+
+```bash
+# Step 1: Tell git to use macOS keychain
+git config --global credential.helper osxkeychain
+
+# Step 2: Verify it is set
+git config --global credential.helper
+# Expected output: osxkeychain
+
+# Step 3: Trigger the first-time credential prompt by doing any push/pull
+# Go to any repo you cloned via HTTPS and push, OR run this test command:
+git ls-remote https://github.com/your-username/your-repo.git
+# Git will prompt:
+#   Username for 'https://github.com': your-github-username     ← type your GitHub username
+#   Password for 'https://...':        ghp_ABcDeFgHi...         ← paste the PAT here
+#
+# macOS saves it to Keychain automatically. Next time: no prompt at all.
+
+# Step 4: Verify it is stored in macOS Keychain
+# Option A — GUI: Spotlight (Cmd+Space) → type "Keychain Access" → search "github.com"
+#            You will see an entry: "github.com" with your username
+# Option B — Terminal:
+security find-internet-password -s github.com
+# Output shows: acct (your username), svce (github.com), stored password = your PAT
+
+# To delete/replace a stored token (e.g. PAT expired, generate a new one):
+git credential-osxkeychain erase <<EOF
+protocol=https
+host=github.com
+EOF
+# Then push again — Git will prompt for new credentials → paste new PAT
+```
+
+---
+
+**Linux — configure libsecret helper and trigger first-time save**
+
+```bash
+# Step 1: Install libsecret (the keychain backend)
+sudo apt install libsecret-1-0 libsecret-1-dev          # Ubuntu/Debian
+sudo dnf install libsecret-devel                         # Fedora/RHEL
+
+# Step 2: Check if the git-credential-libsecret helper already exists
+ls /usr/lib/git-core/git-credential-libsecret
+# If file exists → go to Step 4
+# If not found  → build it in Step 3
+
+# Step 3: Build the helper (only if Step 2 showed file not found)
+sudo apt install gcc make                                # build tools
+sudo make --directory=/usr/share/doc/git/contrib/credential/gnome-keyring
+# This compiles the helper binary
+
+# Step 4: Configure git to use libsecret
+git config --global credential.helper /usr/lib/git-core/git-credential-libsecret
+
+# Step 5: Verify
+git config --global credential.helper
+# Expected: /usr/lib/git-core/git-credential-libsecret
+
+# Step 6: Trigger first-time credential save
+git ls-remote https://github.com/your-username/your-repo.git
+# Git prompts:
+#   Username for 'https://github.com': your-github-username
+#   Password for 'https://...':        ghp_ABcDeFgHi...    ← paste PAT here
+# Linux saves it to GNOME Keyring. All future git operations: no prompt.
+
+# Step 7: Verify it is stored
+secret-tool lookup server github.com
+# Shows the stored token
+
+# To delete (e.g. PAT expired):
+secret-tool clear server github.com
+# Then trigger Step 6 again with new PAT
+```
+
+---
+
+#### Way 2 — `gh auth login` *(HTTPS, automated — use this day-to-day)*
+
+> `gh` is GitHub's official CLI tool. `gh auth login` does everything in Way 1 automatically —
+> it creates the PAT for you, configures the credential helper, and stores the token
+> in the OS keychain. You do not need to touch github.com settings manually.
+> **This is what most developers at companies actually use.**
+
+**Step 1: Install gh CLI**
+```bash
+# macOS
+brew install gh
+
+# Ubuntu/Debian
+sudo apt install gh
+
+# Fedora
+sudo dnf install gh
+
+# Verify install
+gh --version
+# Expected: gh version 2.x.x
+```
+
+**Step 2: Run `gh auth login` and answer the prompts**
+```bash
+gh auth login
+```
+```
+? Where do you use GitHub?
+  ▸ GitHub.com          ← select this (not GitHub Enterprise unless your company uses it)
+    GitHub Enterprise Server
+
+? What is your preferred protocol for Git operations on this host?
+  ▸ HTTPS               ← select HTTPS (Way 2 is HTTPS-based)
+    SSH
+
+? Authenticate Git with your GitHub credentials?
+  ▸ Yes                 ← select Yes (this is the keychain config step from Way 1, done automatically)
+
+? How would you like to authenticate GitHub CLI?
+  ▸ Login with a web browser    ← easiest — opens browser, you log in, done
+    Paste an authentication token
+
+# If you chose "Login with a web browser":
+# Terminal prints: First copy your one-time code: ABCD-1234
+# Browser opens automatically → paste the code → authorize → done
+
+# If you chose "Paste an authentication token":
+# Go to github.com → Settings → Developer settings → Personal access tokens
+# Generate a new token with scopes: repo, workflow, read:org
+# Paste it here → Enter
+```
+
+**Step 3: Verify everything is set up**
+```bash
+gh auth status
+# Expected output:
+# github.com
+#   ✓ Logged in to github.com account your-username (keyring)
+#   ✓ Active account: true
+#   ✓ Git operations for github.com configured to use https protocol
+#   ✓ Token: gho_xxxxxxxxxxxx (stored in system keychain)
+#   ✓ Token scopes: gist, read:org, repo, workflow
+```
+
+**Step 4: Test — clone a repo to confirm credentials work**
+```bash
+gh repo clone your-username/your-repo
+# OR
+git clone https://github.com/your-username/your-repo.git
+# Neither should ask for username or password — credentials come from keychain silently
+```
+
+**Token management**
+```bash
+gh auth refresh                    # generate a fresh token and update keychain (use when token expires)
+gh auth logout                     # remove all stored credentials for github.com
+gh auth token                      # print the currently stored token (useful for scripts)
+```
+
+---
+
+#### Way 3 — SSH Keys *(no token at all — key-based authentication)*
+
+> SSH uses a key pair: a private key (stays on your machine, never shared) and a public key
+> (uploaded to GitHub). No username, no token, no password — Git just uses the key silently.
+> Companies with strict security policies often require SSH.
+
+**Step 1: Generate an SSH key pair**
+```bash
+ssh-keygen -t ed25519 -C "you@example.com"
+# Prompts:
+# Enter file to save key: press Enter  (saves to ~/.ssh/id_ed25519)
+# Enter passphrase: press Enter        (no passphrase = no prompt on every use)
+#                                       (set one if your org requires it)
+
+ls ~/.ssh/
+# id_ed25519        ← private key — NEVER share or commit this
+# id_ed25519.pub    ← public key  — this goes to GitHub
+```
+
+**Step 2: Add public key to GitHub**
+```bash
+cat ~/.ssh/id_ed25519.pub
+# ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAA... you@example.com
+# Copy this entire line
+```
+GitHub → Settings → SSH and GPG keys → New SSH key → paste → Save.
+
+**Step 3: Start SSH agent and add your key (Linux)**
+```bash
+eval "$(ssh-agent -s)"                                 # start agent
+ssh-add ~/.ssh/id_ed25519                              # load key into agent
+
+# To auto-load on every terminal open, add to ~/.bashrc or ~/.zshrc:
+# eval "$(ssh-agent -s)" && ssh-add ~/.ssh/id_ed25519
+```
+
+**Step 4: Test the connection**
+```bash
+ssh -T git@github.com
+# Expected: Hi your-username! You've successfully authenticated...
+# If you see "Permission denied (publickey)" — key was not added to GitHub correctly
+```
+
+**Step 5: Clone using SSH URL**
+```bash
+git clone git@github.com:your-username/repo-name.git   # SSH URL format
+# HTTPS URL looks like: https://github.com/your-username/repo-name.git
+# SSH URL looks like:   git@github.com:your-username/repo-name.git
+```
+
+**Switch an existing repo from HTTPS to SSH**
+```bash
+git remote -v                                          # check current remote URL
+git remote set-url origin git@github.com:user/repo.git # switch to SSH
+git remote -v                                          # verify
+```
+
+---
+
+#### SSH vs HTTPS — quick comparison
+
+| | HTTPS + Keychain (Way 1/2) | SSH (Way 3) |
+|---|---|---|
+| Setup effort | Low — `gh auth login` done | Medium — keygen + GitHub setup |
+| Token needed | Yes (PAT stored in keychain) | No |
+| Works behind corporate proxy | Yes | Sometimes blocked |
+| Used for CI/CD pipelines | Rarely | Yes (deploy keys) |
+| Used by developers day-to-day | Most common | Common in security-focused orgs |
+| Token expiry | PATs expire, need refresh | SSH keys don't expire by default |
+| Multiple GitHub accounts | Easy (gh profiles) | Requires SSH config file tricks |
+
+---
+
 ### Step 1 — CD to workspace & clone the repo
 
 ```bash
