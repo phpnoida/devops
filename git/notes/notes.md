@@ -232,40 +232,107 @@ ls ~/.ssh/
 
 **Step 2: Add public key to GitHub**
 ```bash
+# Print your public key
 cat ~/.ssh/id_ed25519.pub
-# ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAA... you@example.com
-# Copy this entire line
+# Output: ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAA... you@example.com
+# Select and copy the entire line (from ssh-ed25519 to your email)
 ```
-GitHub → Settings → SSH and GPG keys → New SSH key → paste → Save.
+```
+1. Open browser → github.com → log in
+2. Top-right profile photo → Settings
+3. Left sidebar → SSH and GPG keys
+4. Click "New SSH key"
+5. Fill in:
+     Title: my-laptop   (any label — helps identify which machine this key belongs to)
+     Key type: Authentication Key  (default, leave as is)
+     Key: paste the copied line here
+6. Click "Add SSH key" → confirm with your GitHub password if prompted
+```
 
-**Step 3: Start SSH agent and add your key (Linux)**
+**Step 3: Make key loading automatic (the pro way — do this once)**
+
+> Without this step, you must run `ssh-add` every time you open a new terminal.
+> The `~/.ssh/config` file tells SSH to load your key automatically — no manual steps ever again.
+
 ```bash
-eval "$(ssh-agent -s)"                                 # start agent
-ssh-add ~/.ssh/id_ed25519                              # load key into agent
+# Create or open the SSH config file
+nano ~/.ssh/config
+```
 
-# To auto-load on every terminal open, add to ~/.bashrc or ~/.zshrc:
-# eval "$(ssh-agent -s)" && ssh-add ~/.ssh/id_ed25519
+Paste this inside (read the comments — one line is macOS only):
+```
+Host github.com
+  AddKeysToAgent yes
+  UseKeychain yes
+  IdentityFile ~/.ssh/id_ed25519
+```
+
+> **Line by line:**
+> `AddKeysToAgent yes` — automatically adds the key to ssh-agent when first used (macOS + Linux)
+> `UseKeychain yes`    — stores the passphrase in macOS Keychain so you never type it again
+>                        **remove this line if you are on Linux** — it is macOS only
+> `IdentityFile`       — tells SSH exactly which private key to use for github.com
+
+```bash
+# Set correct permissions on the config file (SSH refuses to work if permissions are wrong)
+chmod 600 ~/.ssh/config
+
+# Verify the file looks correct
+cat ~/.ssh/config
+```
+
+**Linux only — start ssh-agent on login (one-time)**
+```bash
+# On Linux, ssh-agent does not start automatically on terminal open.
+# Add this to the END of your ~/.bashrc (bash) or ~/.zshrc (zsh):
+nano ~/.bashrc
+
+# Paste at the bottom:
+if [ -z "$SSH_AUTH_SOCK" ]; then
+  eval "$(ssh-agent -s)"
+fi
+
+# Reload the file
+source ~/.bashrc
+
+# Now add your key to the running agent once:
+ssh-add ~/.ssh/id_ed25519
+# After this, the ~/.ssh/config handles everything automatically on next terminal open
 ```
 
 **Step 4: Test the connection**
 ```bash
 ssh -T git@github.com
-# Expected: Hi your-username! You've successfully authenticated...
-# If you see "Permission denied (publickey)" — key was not added to GitHub correctly
+# Expected: Hi your-username! You've successfully authenticated, but GitHub does not provide shell access.
+# If you see "Permission denied (publickey)": public key was not added to GitHub correctly (redo Step 2)
+# If you see "Connection refused": SSH port 22 is blocked — see tip below
+
+# If port 22 is blocked by corporate firewall, use port 443 instead:
+# Add this to ~/.ssh/config:
+# Host github.com
+#   Hostname ssh.github.com
+#   Port 443
+#   AddKeysToAgent yes
+#   IdentityFile ~/.ssh/id_ed25519
 ```
 
 **Step 5: Clone using SSH URL**
 ```bash
-git clone git@github.com:your-username/repo-name.git   # SSH URL format
-# HTTPS URL looks like: https://github.com/your-username/repo-name.git
-# SSH URL looks like:   git@github.com:your-username/repo-name.git
+git clone git@github.com:your-username/repo-name.git
+# HTTPS URL format: https://github.com/your-username/repo-name.git
+# SSH URL format:   git@github.com:your-username/repo-name.git
+#                   ^^^                          ^^^
+#                   git user on github.com       colon not slash before username
 ```
 
 **Switch an existing repo from HTTPS to SSH**
 ```bash
 git remote -v                                          # check current remote URL
-git remote set-url origin git@github.com:user/repo.git # switch to SSH
+# origin  https://github.com/user/repo.git  (currently HTTPS)
+
+git remote set-url origin git@github.com:user/repo.git # switch to SSH URL
 git remote -v                                          # verify
+# origin  git@github.com:user/repo.git      (now SSH)
 ```
 
 ---
